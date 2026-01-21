@@ -14,7 +14,7 @@ client = genai.Client(api_key=API_KEY)
 VERSION = "1.0.5" 
 
 # Your GitHub RAW link (Must be exactly this for your account)
-UPDATE_URL = "https://raw.githubusercontent.com/narmzliusnarmzlius-cmd/nevo-x-update/main/nevo_app.py"
+UPDATE_URL = "https://raw.githubusercontent.com/narmzliusnarmzlius-cmd/nevo-x-update/refs/heads/main/nevo_app.py"
  
 
 class NevoApp(ctk.CTk):
@@ -90,3 +90,4 @@ class NevoApp(ctk.CTk):
 if __name__ == "__main__":
     app = NevoApp()
     app.mainloop()
+
