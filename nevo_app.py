@@ -7,12 +7,15 @@ import os
 import subprocess
 import time
 
-# --- CONFIGURATION ---
+# --- KONFIGŪRACIJA ---
 API_KEY = "AIzaSyDzGQwSFBODnhO4uj9qIt-D-5fDX2765GE"
 client = genai.Client(api_key=API_KEY)
 
-VERSION = "1.0.8" 
+VERSION = "1.1.0" 
 UPDATE_URL = "https://raw.githubusercontent.com/narmzliusnarmzlius-cmd/nevo-x-update/refs/heads/main/nevo_app.py"
+
+# Nuoroda į tavo naują .exe failą GitHub'e
+EXE_URL = "https://github.com/narmzliusnarmzlius-cmd/nevo-x-update/releases/latest/download/Nevo-X.exe"
 
 
 class NevoApp(ctk.CTk):
@@ -48,34 +51,36 @@ class NevoApp(ctk.CTk):
             response = requests.get(UPDATE_URL, timeout=5)
             if response.status_code == 200:
                 if f'VERSION = "{VERSION}"' not in response.text:
-                    self.after(0, lambda: self.display_message("SYSTEM", "New update found! Restarting in 3 seconds..."))
-                    time.sleep(3)
-                    self.execute_auto_update(response.text)
+                    self.after(0, lambda: self.display_message("SYSTEM", "Updating... The app will restart automatically."))
+                    self.perform_full_update()
         except:
             pass
 
-    def execute_auto_update(self, new_code):
-        # 1. Išsaugome naują kodą į laikiną failą
-        file_path = os.path.abspath(sys.argv[0])
-        temp_file = "new_version.py"
-        with open(temp_file, "w", encoding="utf-8") as f:
-            f.write(new_code)
+    def perform_full_update(self):
+        try:
+            # 1. Atsisiunčiame naują .exe
+            r = requests.get(EXE_URL, stream=True)
+            with open("Nevo-X_new.exe", "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
-        # 2. Sukuriame Batch skriptą, kuris sukeis failus
-        # Jis palaukia, kol Nevo-X užsidarys, tada perrašo ir vėl paleidžia
-        batch_script = "updater.bat"
-        with open(batch_script, "w") as f:
-            f.write(f'@echo off\n')
-            f.write(f'timeout /t 2 /nobreak > nul\n')
-            f.write(f'copy /y "{temp_file}" "{file_path}"\n')
-            f.write(f'del "{temp_file}"\n')
-            f.write(f'start "" python "{file_path}"\n')
-            f.write(f'del "%~f0"\n')
+            # 2. Sukuriame Batch skriptą, kuris sukeis failus
+            current_exe = os.path.abspath(sys.argv[0])
+            batch_script = "updater.bat"
+            with open(batch_script, "w") as f:
+                f.write(f'@echo off\n')
+                f.write(f'timeout /t 2 /nobreak > nul\n')
+                f.write(f'del "{current_exe}"\n')
+                f.write(f'move "Nevo-X_new.exe" "{current_exe}"\n')
+                f.write(f'start "" "{current_exe}"\n')
+                f.write(f'del "%~f0"\n')
 
-        # 3. Paleidžiame skriptą fone ir išjungiam programą
-        subprocess.Popen([batch_script], shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        self.destroy()
-        sys.exit()
+            # 3. Paleidžiame skriptą fone ir užsidarome
+            subprocess.Popen([batch_script], shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            self.destroy()
+            sys.exit()
+        except:
+            self.after(0, lambda: self.display_message("SYSTEM", "Update failed. Try manually."))
 
     def ask_ai_logic(self, prompt):
         instr = "You are Nevo-X. Respond in English."
